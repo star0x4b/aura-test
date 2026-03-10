@@ -1,0 +1,18 @@
+{{- if .Values.autoscaling.enabled }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: web-server-scaler
+spec:
+  scaleTargetRef:
+    name: web-server
+  minReplicaCount: {{ .Values.autoscaling.minReplicas }}
+  maxReplicaCount: {{ .Values.autoscaling.maxReplicas }}
+  triggers:
+    # CPU-based scaling. In production, consider a Prometheus trigger
+    # for request-rate metrics (e.g., http_requests_per_second).
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: {{ .Values.autoscaling.cpuThreshold | quote }}
+{{- end }}

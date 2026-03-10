@@ -1,0 +1,25 @@
+image: aura/customer-management:latest
+imagePullPolicy: Never
+replicas: 1
+port: 3001
+
+env:
+  KAFKA_BROKERS: "kafka:9092"
+  MONGO_URI: "mongodb://mongodb:27017"
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "256Mi"
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 10
+  kafkaBootstrapServers: "kafka:9092"
+  kafkaTopic: "purchases"
+  kafkaConsumerGroup: "customer-management-group"
+  kafkaLagThreshold: "10"

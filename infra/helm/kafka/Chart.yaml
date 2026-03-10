@@ -1,0 +1,5 @@
+apiVersion: v2
+name: kafka
+description: Apache Kafka broker in KRaft mode (single node for local development)
+version: 0.1.0
+appVersion: "3.9.0"

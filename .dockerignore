@@ -1,0 +1,7 @@
+node_modules/
+.git/
+*.docx
+.DS_Store
+coverage/
+.env
+.env.*

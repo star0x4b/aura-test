@@ -1,0 +1,21 @@
+{{- if .Values.autoscaling.enabled }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: customer-management-scaler
+spec:
+  scaleTargetRef:
+    name: customer-management
+  minReplicaCount: {{ .Values.autoscaling.minReplicas }}
+  maxReplicaCount: {{ .Values.autoscaling.maxReplicas }}
+  triggers:
+    # Scale based on Kafka consumer lag — the natural metric for a consumer.
+    # When messages pile up faster than the consumer processes them, KEDA
+    # adds replicas to increase throughput.
+    - type: kafka
+      metadata:
+        bootstrapServers: {{ .Values.autoscaling.kafkaBootstrapServers | quote }}
+        consumerGroup: {{ .Values.autoscaling.kafkaConsumerGroup | quote }}
+        topic: {{ .Values.autoscaling.kafkaTopic | quote }}
+        lagThreshold: {{ .Values.autoscaling.kafkaLagThreshold | quote }}
+{{- end }}

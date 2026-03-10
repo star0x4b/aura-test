@@ -1,0 +1,5 @@
+apiVersion: v2
+name: web-server
+description: Customer-facing web server - publishes purchases to Kafka
+version: 0.1.0
+appVersion: "1.0.0"

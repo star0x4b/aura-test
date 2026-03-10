@@ -1,0 +1,5 @@
+apiVersion: v2
+name: customer-management
+description: Customer management API - consumes Kafka messages and stores in MongoDB
+version: 0.1.0
+appVersion: "1.0.0"

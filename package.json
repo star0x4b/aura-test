@@ -1,0 +1,18 @@
+{
+  "name": "aura-test",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "build:shared": "npm run build -w packages/shared",
+    "build:web-server": "npm run build -w apps/web-server",
+    "build:customer-management": "npm run build -w apps/customer-management",
+    "build:frontend": "npm run build -w apps/frontend",
+    "dev:web-server": "npm run dev -w apps/web-server",
+    "dev:customer-management": "npm run dev -w apps/customer-management",
+    "dev:frontend": "npm run dev -w apps/frontend"
+  }
+}
