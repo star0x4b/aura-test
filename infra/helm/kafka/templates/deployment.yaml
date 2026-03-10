@@ -1,3 +1,6 @@
+# Single-node Kafka broker using KRaft mode (no ZooKeeper dependency).
+# This is sufficient for local development. In production, replace this
+# chart with a managed Kafka service (e.g., AWS MSK, Confluent Cloud).
 apiVersion: apps/v1
 kind: Deployment
 metadata:

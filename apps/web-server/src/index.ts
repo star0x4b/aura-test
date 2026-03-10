@@ -1,3 +1,16 @@
+/**
+ * Customer-Facing Web Server
+ *
+ * This service is the public API gateway. It handles two operations:
+ * 1. POST /api/buy — Accepts a purchase request, enriches it with a timestamp,
+ *    and publishes it to Kafka for async processing. Returns 202 (Accepted)
+ *    because the purchase is not yet persisted — that happens in customer-management.
+ * 2. GET /api/purchases/:userId — Proxies the request to the customer-management
+ *    service which owns the MongoDB data layer.
+ *
+ * This separation means the web-server has no direct DB dependency, making it
+ * lightweight and independently scalable.
+ */
 import express, { Request, Response } from "express";
 import { Kafka, Producer } from "kafkajs";
 import { PurchaseRequest, PurchaseMessage, KAFKA_TOPIC } from "@aura/shared";
@@ -13,15 +26,14 @@ let producer: Producer;
 const app = express();
 app.use(express.json());
 
-// --- Health checks ---
 app.get("/healthz", (_req, res) => res.send("ok"));
 app.get("/readyz", (_req, res) => {
-  // Ready only when producer is connected
   if (producer) return res.send("ok");
   res.status(503).send("not ready");
 });
 
-// --- POST /api/buy ---
+// Accept a purchase, publish to Kafka, and return 202.
+// The purchase will be persisted asynchronously by the customer-management consumer.
 app.post("/api/buy", async (req: Request, res: Response) => {
   const { username, userId, price } = req.body as PurchaseRequest;
 
@@ -37,6 +49,8 @@ app.post("/api/buy", async (req: Request, res: Response) => {
   };
 
   try {
+    // Use userId as the Kafka message key to ensure all purchases from the same
+    // user land on the same partition, preserving per-user ordering.
     await producer.send({
       topic: KAFKA_TOPIC,
       messages: [{ key: userId, value: JSON.stringify(message) }],
@@ -48,7 +62,7 @@ app.post("/api/buy", async (req: Request, res: Response) => {
   }
 });
 
-// --- GET /api/purchases/:userId ---
+// Proxy read requests to customer-management, which owns the data layer.
 app.get("/api/purchases/:userId", async (req: Request, res: Response) => {
   try {
     const upstream = `${CUSTOMER_MANAGEMENT_URL}/api/purchases/${req.params.userId}`;
@@ -61,7 +75,6 @@ app.get("/api/purchases/:userId", async (req: Request, res: Response) => {
   }
 });
 
-// --- Start ---
 async function start() {
   producer = kafka.producer();
   await producer.connect();

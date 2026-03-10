@@ -1,3 +1,7 @@
+# Makefile for local Kubernetes development with kind.
+# Infrastructure (Kafka, MongoDB, KEDA) is installed separately from app services,
+# mirroring production where these would be managed independently.
+
 CLUSTER_NAME := aura
 NAMESPACE := aura-system
 HELM_DIR := infra/helm
@@ -46,6 +50,8 @@ load: build ## Build and load all images into kind cluster
 		kind load docker-image aura/$$svc:latest --name $(CLUSTER_NAME); \
 	done
 	@echo "==> Pulling and loading infrastructure images..."
+	# OCI images with attestation manifests fail with `kind load docker-image`,
+	# so we use direct containerd import as a workaround.
 	@for img in apache/kafka:3.9.0 mongo:8.0; do \
 		docker pull $$img 2>/dev/null || true; \
 		docker save $$img | docker exec -i $(CLUSTER_NAME)-control-plane \
@@ -55,6 +61,8 @@ load: build ## Build and load all images into kind cluster
 ## — Dependencies (Kafka, MongoDB, KEDA) —
 
 deps: ## Install infrastructure dependencies (kafka, mongodb, keda)
+	# KEDA must be installed first — its CRDs are required before the app
+	# charts can create ScaledObject resources.
 	@echo "==> Installing KEDA..."
 	helm repo add kedacore https://kedacore.github.io/charts 2>/dev/null || true
 	helm repo update kedacore

@@ -1,3 +1,5 @@
+# Standalone MongoDB instance for local development. No auth enabled for simplicity.
+# In production, replace with a managed service (e.g., MongoDB Atlas).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
