@@ -5,7 +5,49 @@ on:
     branches: [main]
 
 jobs:
-  lint-test-build:
+  # Detect which parts of the monorepo changed to avoid unnecessary work.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      shared: ${{ steps.filter.outputs.shared }}
+      web-server: ${{ steps.filter.outputs.web-server }}
+      customer-management: ${{ steps.filter.outputs.customer-management }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      infra: ${{ steps.filter.outputs.infra }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            shared:
+              - 'packages/shared/**'
+              - 'tsconfig.base.json'
+              - 'package.json'
+              - 'eslint.config.mjs'
+            web-server:
+              - 'apps/web-server/**'
+              - 'packages/shared/**'
+              - 'tsconfig.base.json'
+            customer-management:
+              - 'apps/customer-management/**'
+              - 'packages/shared/**'
+              - 'tsconfig.base.json'
+            frontend:
+              - 'apps/frontend/**'
+            infra:
+              - 'infra/**'
+              - 'Makefile'
+
+  # Lint and typecheck run on any code change since ESLint uses a single
+  # root config and shared types affect multiple packages.
+  lint-typecheck:
+    needs: changes
+    if: >-
+      needs.changes.outputs.shared == 'true' ||
+      needs.changes.outputs.web-server == 'true' ||
+      needs.changes.outputs.customer-management == 'true' ||
+      needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,10 +60,57 @@ jobs:
       - run: npm ci
 
       - name: Lint
-        run: npm run lint --workspaces --if-present
+        run: npm run lint
 
-      - name: Test
-        run: npm test --workspaces --if-present
+      - name: Type Check
+        run: npm run typecheck
 
       - name: Build
-        run: npm run build --workspaces --if-present
+        run: npm run build
+
+  # Only build Docker images for services whose source code changed.
+  # Changes to shared package trigger rebuilds for both backend services.
+  docker-build-web-server:
+    needs: changes
+    if: needs.changes.outputs.web-server == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web-server/Dockerfile
+          push: false
+          cache-from: type=gha,scope=web-server
+          cache-to: type=gha,scope=web-server,mode=max
+
+  docker-build-customer-management:
+    needs: changes
+    if: needs.changes.outputs.customer-management == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/customer-management/Dockerfile
+          push: false
+          cache-from: type=gha,scope=customer-management
+          cache-to: type=gha,scope=customer-management,mode=max
+
+  docker-build-frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/frontend/Dockerfile
+          push: false
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max

@@ -13,6 +13,13 @@
     "build:frontend": "npm run build -w apps/frontend",
     "dev:web-server": "npm run dev -w apps/web-server",
     "dev:customer-management": "npm run dev -w apps/customer-management",
-    "dev:frontend": "npm run dev -w apps/frontend"
+    "dev:frontend": "npm run dev -w apps/frontend",
+    "lint": "eslint .",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.0.3",
+    "typescript-eslint": "^8.57.0"
   }
 }
